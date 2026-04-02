@@ -374,7 +374,15 @@ function selectSource(src) {
 
 /* ── 검색 기록 ── */
 function loadHistory() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+    try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        // 이전 버전(객체 배열)과 현재 버전(문자열 배열) 모두 처리
+        return raw.map(x => {
+            if (typeof x === 'string') return x;
+            if (x && typeof x === 'object' && x.keyword) return x.keyword;
+            return null;
+        }).filter(Boolean);
+    } catch { return []; }
 }
 function saveHistory(h) { localStorage.setItem(STORAGE_KEY, JSON.stringify(h)); }
 

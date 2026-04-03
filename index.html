@@ -306,15 +306,8 @@ const STORAGE_KEY = "news_keyword_history";
 /* 소스 정의 */
 const SOURCES = [
     { id: 'naver',  label: '네이버',  color: '#00c73c', type: 'naver' },
-    // 구글: 키워드로 검색하는 RSS
     { id: 'google', label: '구글',    color: '#4285f4', type: 'rss', filter: false,
       rss: kw => `https://news.google.com/rss/search?q=${encodeURIComponent(kw)}&hl=ko&gl=KR&ceid=KR:ko` },
-    // YTN: 구글 뉴스에서 YTN 기사만 필터링 (YTN 자체 RSS 차단됨)
-    { id: 'ytn',    label: 'YTN',     color: '#e63946', type: 'rss', filter: false,
-      rss: kw => `https://news.google.com/rss/search?q=${encodeURIComponent(kw)}+site:ytn.co.kr&hl=ko&gl=KR&ceid=KR:ko` },
-    // CNN: http:// 사용 (https TLS 연결 오류 우회)
-    { id: 'cnn',    label: 'CNN',     color: '#cc0000', type: 'rss', filter: true,
-      rss: kw => `http://rss.cnn.com/rss/edition.rss` },
 ];
 
 let selectedSources = new Set(['naver']); // 기본: 네이버

@@ -46,123 +46,152 @@
             min-height: 100vh; transition: background .25s, color .25s;
         }
 
-        /* ══ 헤더 ══════════════════════════════════════════════════ */
-        header {
-            position: sticky; top: 0; z-index: 300;
-            background: var(--surface); border-bottom: 1px solid var(--border);
-            box-shadow: 0 1px 10px var(--shadow);
-            padding: 13px 28px; display: flex; align-items: center; gap: 14px;
+        /* ══ 플로팅 패널 ════════════════════════════════════════════ */
+        .floating-panel {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 16px var(--shadow);
+        }
+
+        /* 상단 바: 로고 + 소스 + 기간 + 테마 */
+        .top-bar {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
         }
         .logo-mark {
-            width: 30px; height: 30px; background: var(--accent);
-            border-radius: 7px; display: flex; align-items: center; justify-content: center;
-            font-family: 'Space Mono', monospace; font-weight: 700; font-size: 14px;
+            width: 28px; height: 28px; background: var(--accent);
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            font-family: 'Space Mono', monospace; font-weight: 700; font-size: 13px;
             color: #000; flex-shrink: 0;
         }
-        header h1 {
-            font-family: 'Space Mono', monospace; font-size: 15px;
-            font-weight: 700; color: var(--text); flex: 1;
+        .top-bar h1 {
+            font-family: 'Space Mono', monospace; font-size: 13px;
+            font-weight: 700; color: var(--text); margin-right: 4px; white-space: nowrap;
         }
-        header h1 span { color: var(--accent); }
-        .theme-btn {
-            background: var(--chip-bg); border: 1px solid var(--border);
-            border-radius: 7px; padding: 5px 13px; cursor: pointer;
-            font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
-            color: var(--text); transition: background .15s; white-space: nowrap;
+        .top-bar h1 span { color: var(--accent); }
+
+        /* 구분선 */
+        .bar-divider {
+            width: 1px; height: 20px; background: var(--border); flex-shrink: 0;
         }
-        .theme-btn:hover { background: var(--chip-hov); }
 
-        /* ══ 컨트롤 패널 ════════════════════════════════════════════ */
-        .control-panel { max-width: 900px; margin: 32px auto 0; padding: 0 24px; }
-
-        /* 소스 체크박스 그룹 */
-        .source-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        /* 소스 그룹 (왼쪽) */
+        .source-group {
+            display: flex; flex-wrap: wrap; gap: 6px; flex: 1;
+        }
         .src-label {
-            display: inline-flex; align-items: center; gap: 7px;
-            padding: 7px 16px; border-radius: 8px;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 7px;
             border: 1.5px solid var(--border); background: var(--surface2);
             cursor: pointer; user-select: none;
             font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
             color: var(--text-sub); transition: border-color .15s, background .15s, color .15s;
+            white-space: nowrap;
         }
         .src-label input[type="checkbox"] { display: none; }
         .src-label .dot {
-            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; opacity: .4;
+            width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; opacity: .4;
             transition: opacity .15s;
         }
         .src-label.checked { border-color: var(--accent); background: var(--surface); color: var(--text); }
         .src-label.checked .dot { opacity: 1; }
         .src-label:hover:not(.checked) { border-color: var(--muted); color: var(--text); }
 
-        /* 기간 필터 */
-        .period-group { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        /* 기간 그룹 (오른쪽) */
+        .period-group {
+            display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;
+        }
         .period-btn {
-            padding: 6px 14px; border-radius: 7px;
+            padding: 5px 11px; border-radius: 7px;
             border: 1.5px solid var(--border); background: var(--surface2);
             cursor: pointer; font-family: 'Space Mono', monospace;
-            font-size: 11px; font-weight: 700; color: var(--text-sub);
+            font-size: 10px; font-weight: 700; color: var(--text-sub);
             transition: border-color .15s, background .15s, color .15s;
+            white-space: nowrap;
         }
         .period-btn.active { border-color: var(--accent2); color: var(--accent2); background: var(--surface); }
         .period-btn:hover:not(.active) { border-color: var(--muted); color: var(--text); }
 
-        /* 검색창 */
-        .search-row {
-            display: flex; border: 1.5px solid var(--border); border-radius: 10px;
-            overflow: hidden; background: var(--surface);
-            box-shadow: 0 2px 10px var(--shadow); transition: border-color .2s;
+        .theme-btn {
+            background: var(--chip-bg); border: 1px solid var(--border);
+            border-radius: 7px; padding: 5px 12px; cursor: pointer;
+            font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+            color: var(--text); transition: background .15s; white-space: nowrap; flex-shrink: 0;
         }
-        .search-row:focus-within { border-color: var(--accent); }
+        .theme-btn:hover { background: var(--chip-hov); }
+
+        /* 검색창 바 */
+        .search-bar {
+            padding: 10px 20px;
+        }
+        .search-row {
+            display: flex; border: 1.5px solid var(--border); border-radius: 9px;
+            overflow: hidden; background: var(--surface2);
+            transition: border-color .2s;
+        }
+        .search-row:focus-within { border-color: var(--accent); background: var(--surface); }
         .search-row input {
             flex: 1; background: transparent; border: none; outline: none;
-            padding: 14px 20px; font-size: 16px; font-weight: 500;
+            padding: 11px 18px; font-size: 15px; font-weight: 500;
             font-family: 'Noto Sans KR', sans-serif; color: var(--text);
         }
         .search-row input::placeholder { color: var(--muted); font-weight: 400; }
         .search-row button {
-            background: var(--accent); border: none; padding: 0 28px; cursor: pointer;
-            font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+            background: var(--accent); border: none; padding: 0 24px; cursor: pointer;
+            font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700;
             color: #000; transition: opacity .15s; white-space: nowrap;
         }
         .search-row button:hover { opacity: .85; }
         .search-row button:disabled { opacity: .35; cursor: not-allowed; }
 
-        /* ══ 검색 기록 ══════════════════════════════════════════════ */
-        .history-wrap { max-width: 900px; margin: 14px auto 0; padding: 0 24px; }
-        .history-header {
-            display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px;
+        /* 검색 기록 바 */
+        .history-bar {
+            padding: 0 20px 10px;
+            border-top: 1px solid var(--border);
+        }
+        .history-bar-inner {
+            display: flex; align-items: flex-start; gap: 10px; padding-top: 8px;
         }
         .history-label {
-            font-family: 'Space Mono', monospace; font-size: 10px;
+            font-family: 'Space Mono', monospace; font-size: 9px;
             letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+            padding-top: 6px; white-space: nowrap; flex-shrink: 0;
         }
-        .history-actions { display: flex; gap: 7px; }
+        .history-list { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+        .h-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: var(--chip-bg); border: 1px solid var(--border);
+            border-radius: 20px; padding: 4px 8px 4px 12px;
+            font-size: 12px; font-weight: 500; color: var(--text);
+            cursor: pointer; transition: background .15s, border-color .15s; user-select: none;
+        }
+        .h-chip:hover { background: var(--chip-hov); border-color: var(--accent); }
+        .h-chip .del { font-size: 14px; line-height: 1; color: var(--muted); transition: color .15s; }
+        .h-chip .del:hover { color: #f87171; }
+        .history-actions { display: flex; gap: 6px; align-items: flex-start; padding-top: 4px; flex-shrink: 0; }
         .hbtn {
-            font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+            font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
             background: none; border: 1px solid var(--border); border-radius: 5px;
-            padding: 3px 10px; cursor: pointer; color: var(--muted);
-            transition: color .15s, border-color .15s, background .15s;
+            padding: 3px 9px; cursor: pointer; color: var(--muted);
+            transition: color .15s, border-color .15s, background .15s; white-space: nowrap;
         }
         .hbtn:hover { color: var(--text); border-color: var(--muted); }
         .hbtn.export { color: var(--accent2); border-color: var(--accent2); }
         .hbtn.export:hover { background: rgba(56,189,248,.08); }
-        .history-list { display: flex; flex-wrap: wrap; gap: 7px; }
-        .h-chip {
-            display: inline-flex; align-items: center; gap: 5px;
-            background: var(--chip-bg); border: 1px solid var(--border);
-            border-radius: 20px; padding: 5px 10px 5px 14px;
-            font-size: 13px; font-weight: 500; color: var(--text);
-            cursor: pointer; transition: background .15s, border-color .15s; user-select: none;
-        }
-        .h-chip:hover { background: var(--chip-hov); border-color: var(--accent); }
-        .h-chip .del { font-size: 15px; line-height: 1; color: var(--muted); transition: color .15s; }
-        .h-chip .del:hover { color: #f87171; }
 
         /* ══ 결과 레이아웃 ═══════════════════════════════════════════ */
-        .results-area {
-            margin-top: 24px;
+        /* 플로팅 패널 높이만큼 body에 패딩 (JS로 동적 설정) */
+        #resultsArea {
             display: flex; align-items: stretch;
-            min-height: calc(100vh - 260px);
+            min-height: calc(100vh - 200px);
+            border-top: 1px solid var(--border);
+        }
+        .results-area {
+            display: flex; align-items: stretch;
+            min-height: calc(100vh - 200px);
             border-top: 1px solid var(--border);
         }
         .results-area.single { display: block; }
@@ -175,7 +204,7 @@
 
         /* 패널 헤더 (다중일 때만) */
         .pane-header {
-            position: sticky; top: 57px; z-index: 100;
+            position: sticky; top: var(--panel-h, 120px); z-index: 100;
             background: var(--surface2); border-bottom: 1px solid var(--border);
             padding: 9px 18px; display: flex; align-items: center; gap: 9px;
         }
@@ -245,47 +274,53 @@
 </head>
 <body>
 
-<!-- 헤더 -->
-<header>
-    <div class="logo-mark">N</div>
-    <h1>NEWS <span>SEARCH</span></h1>
-    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ 라이트</button>
-</header>
+<!-- ══ 플로팅 패널 ══ -->
+<div class="floating-panel" id="floatingPanel">
 
-<!-- 컨트롤 패널 -->
-<div class="control-panel">
+    <!-- 1행: 로고 | 소스 선택(좌) | 기간 필터(우) | 테마 -->
+    <div class="top-bar">
+        <div class="logo-mark">N</div>
+        <h1>NEWS <span>SEARCH</span></h1>
+        <div class="bar-divider"></div>
 
-    <!-- 소스 선택 (다중 체크) -->
-    <div class="source-group" id="sourceGroup">
-        <!-- JS로 렌더링 -->
+        <!-- 소스 선택 (왼쪽) -->
+        <div class="source-group" id="sourceGroup"></div>
+
+        <div class="bar-divider"></div>
+
+        <!-- 기간 필터 (오른쪽) -->
+        <div class="period-group" id="periodGroup">
+            <button class="period-btn active" data-days="0"   onclick="selectPeriod(this)">전체</button>
+            <button class="period-btn"        data-days="1"   onclick="selectPeriod(this)">1일</button>
+            <button class="period-btn"        data-days="7"   onclick="selectPeriod(this)">1주일</button>
+            <button class="period-btn"        data-days="30"  onclick="selectPeriod(this)">1개월</button>
+            <button class="period-btn"        data-days="365" onclick="selectPeriod(this)">1년</button>
+        </div>
+
+        <div class="bar-divider"></div>
+        <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ 라이트</button>
     </div>
 
-    <!-- 기간 필터 -->
-    <div class="period-group" id="periodGroup">
-        <button class="period-btn active" data-days="0"    onclick="selectPeriod(this)">전체</button>
-        <button class="period-btn"        data-days="1"    onclick="selectPeriod(this)">최근 1일</button>
-        <button class="period-btn"        data-days="7"    onclick="selectPeriod(this)">최근 1주일</button>
-        <button class="period-btn"        data-days="30"   onclick="selectPeriod(this)">최근 1개월</button>
-        <button class="period-btn"        data-days="365"  onclick="selectPeriod(this)">최근 1년</button>
-    </div>
-
-    <!-- 검색창 -->
-    <div class="search-row">
-        <input type="text" id="keyword" placeholder="검색할 키워드 (예: AI, 삼성전자, 기후변화)">
-        <button id="searchBtn" onclick="searchNews()">검색</button>
-    </div>
-</div>
-
-<!-- 검색 기록 -->
-<div class="history-wrap" id="historyWrap" style="display:none">
-    <div class="history-header">
-        <span class="history-label">검색 기록</span>
-        <div class="history-actions">
-            <button class="hbtn export" onclick="exportJSON()">JSON 저장</button>
-            <button class="hbtn" onclick="clearHistory()">전체 삭제</button>
+    <!-- 2행: 검색창 -->
+    <div class="search-bar">
+        <div class="search-row">
+            <input type="text" id="keyword" placeholder="검색할 키워드 (예: AI, 삼성전자, 기후변화)">
+            <button id="searchBtn" onclick="searchNews()">검색</button>
         </div>
     </div>
-    <div class="history-list" id="historyList"></div>
+
+    <!-- 3행: 검색 기록 -->
+    <div class="history-bar" id="historyWrap" style="display:none">
+        <div class="history-bar-inner">
+            <span class="history-label">기록</span>
+            <div class="history-list" id="historyList"></div>
+            <div class="history-actions">
+                <button class="hbtn export" onclick="exportJSON()">JSON</button>
+                <button class="hbtn" onclick="clearHistory()">삭제</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- 결과 -->
@@ -406,8 +441,13 @@ function renderHistory() {
     const h    = loadHistory();
     const wrap = document.getElementById('historyWrap');
     const list = document.getElementById('historyList');
-    if (!h.length) { wrap.style.display = 'none'; return; }
+    if (!h.length) {
+        wrap.style.display = 'none';
+        setTimeout(adjustBodyPadding, 50);
+        return;
+    }
     wrap.style.display = 'block';
+    setTimeout(adjustBodyPadding, 50);
     list.innerHTML = h.map(kw => {
         const safe = kw.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         return `
@@ -562,6 +602,18 @@ function parseRSS(xml) {
 document.getElementById('keyword').addEventListener('keypress', e => {
     if (e.key === 'Enter') searchNews();
 });
+
+// 플로팅 패널 높이만큼 body 상단 여백 동적 설정
+function adjustBodyPadding() {
+    const panel = document.getElementById('floatingPanel');
+    const h = panel.offsetHeight;
+    document.body.style.paddingTop = h + 'px';
+    document.documentElement.style.setProperty('--panel-h', h + 'px');
+}
+const resizeObserver = new ResizeObserver(adjustBodyPadding);
+resizeObserver.observe(document.getElementById('floatingPanel'));
+adjustBodyPadding();
+
 renderHistory();
 </script>
 </body>

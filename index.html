@@ -306,12 +306,12 @@ const STORAGE_KEY = "news_keyword_history";
 /* 소스 정의 */
 const SOURCES = [
     { id: 'naver',  label: '네이버',  color: '#00c73c', type: 'naver' },
-    { id: 'google', label: '구글',    color: '#4285f4', type: 'rss',
+    { id: 'google', label: '구글',    color: '#4285f4', type: 'rss', filter: false,
       rss: kw => `https://news.google.com/rss/search?q=${encodeURIComponent(kw)}&hl=ko&gl=KR&ceid=KR:ko` },
-    { id: 'ytn',    label: 'YTN',     color: '#e63946', type: 'rss',
-      rss: kw => `https://www.ytn.co.kr/rss/rss.php?category=02` },
-    { id: 'cnn',    label: 'CNN',     color: '#cc0000', type: 'rss',
-      rss: kw => `https://rss.cnn.com/rss/edition.rss` },
+    { id: 'ytn',    label: 'YTN',     color: '#e63946', type: 'rss', filter: true,
+      rss: kw => `https://www.ytn.co.kr/_ln/rss_news.xml` },
+    { id: 'cnn',    label: 'CNN',     color: '#cc0000', type: 'rss', filter: true,
+      rss: kw => `https://rss.cnn.com/rss/cnn_topstories.rss` },
 ];
 
 let selectedSources = new Set(['naver']); // 기본: 네이버
@@ -533,13 +533,13 @@ async function fetchNaver(keyword) {
 
 async function fetchRSS(src, keyword) {
     const rssUrl = src.rss(keyword);
-    const res    = await fetch(`${PROXY}/google-news?url=${encodeURIComponent(rssUrl)}`);
+    const res    = await fetch(`${PROXY}/rss?url=${encodeURIComponent(rssUrl)}`);
     if (!res.ok) throw new Error(`${src.label} RSS 오류: ${res.status}`);
     const text = await res.text();
     let items = parseRSS(text);
 
-    // YTN, CNN은 키워드로 클라이언트 필터링
-    if (src.id === 'ytn' || src.id === 'cnn') {
+    // filter:true 소스는 키워드로 클라이언트 필터링
+    if (src.filter) {
         const kw = keyword.toLowerCase();
         items = items.filter(it =>
             (it.title + ' ' + it.description).toLowerCase().includes(kw)

@@ -224,7 +224,7 @@
         }
         .pane-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
         .pane-title { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text-sub); flex: 1; }
-        .pane-count { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
+        .pane-count { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); flex: 1; }
 
         .pane-body { padding: 16px; overflow-y: auto; }
 
@@ -316,6 +316,14 @@
                 <button class="period-btn"        data-count="50"  onclick="selectCount(this)">50</button>
                 <button class="period-btn"        data-count="100" onclick="selectCount(this)">100</button>
             </div>
+
+            <!-- 중복 제거 (기사 수에서 16px 띄움) -->
+            <div class="period-group" id="dedupGroup" style="margin-left:16px">
+                <button class="period-btn active" data-dedup="off" onclick="selectDedup(this)">중복해제</button>
+                <button class="period-btn"        data-dedup="low"  onclick="selectDedup(this)">최저</button>
+                <button class="period-btn"        data-dedup="mid"  onclick="selectDedup(this)">중간</button>
+                <button class="period-btn"        data-dedup="high" onclick="selectDedup(this)">최대</button>
+            </div>
         </div>
 
         <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ 라이트</button>
@@ -362,13 +370,15 @@ const STORAGE_KEY = "news_keyword_history";
 /* 소스 정의 */
 const SOURCES = [
     { id: 'naver',  label: '네이버',  color: '#00c73c', type: 'naver' },
-    { id: 'google', label: '구글',    color: '#4285f4', type: 'rss', filter: false,
+    { id: 'google',  label: '구글뉴스', color: '#4285f4', type: 'rss', filter: false,
       rss: kw => `https://news.google.com/rss/search?q=${encodeURIComponent(kw)}&hl=ko&gl=KR&ceid=KR:ko` },
+    { id: 'gsearch', label: '구글검색', color: '#34a853', type: 'gsearch' },
 ];
 
-let selectedSources = new Set(['naver']); // 기본: 네이버
+let selectedSources = new Set(['naver', 'google']); // 기본: 네이버+구글
 let filterDays = 0; // 0 = 전체
-let maxCount = 20;   // 최대 기사 수
+let maxCount  = 20;   // 최대 기사 수
+let dedupLevel = 'off'; // 중복 제거 수준: off / low / mid / high
 let currentTheme = localStorage.getItem('news_theme') || 'dark';
 applyTheme(currentTheme);
 renderSourceGroup();
@@ -415,6 +425,12 @@ function withinPeriod(pubDateStr) {
     if (isNaN(pub)) return true; // 날짜 파싱 실패 시 통과
     const cutoff = new Date(Date.now() - filterDays * 24 * 60 * 60 * 1000);
     return pub >= cutoff;
+}
+
+function selectDedup(btn) {
+    document.querySelectorAll('#dedupGroup .period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    dedupLevel = btn.dataset.dedup;
 }
 
 function selectCount(btn) {
@@ -520,16 +536,12 @@ async function searchNews() {
 
 /* ── 패널 HTML ── */
 function paneHTML(src, showHeader) {
-    const header = showHeader ? `
+    // 단일/다중 모두 항상 헤더 표시 (건수 + 엑셀 버튼)
+    const header = `
         <div class="pane-header">
-            <span class="pane-dot" style="background:${src.color}"></span>
-            <span class="pane-title">${src.label} 뉴스</span>
-            <span class="pane-count" id="count-${src.id}"></span>
-            <button class="excel-btn" id="excel-${src.id}" onclick="exportExcel('${src.id}')" disabled>
-                ⬇ 엑셀 저장
-            </button>
-        </div>` : `
-        <div class="pane-header" style="justify-content:flex-end">
+            ${showHeader ? `<span class="pane-dot" style="background:${src.color}"></span>
+            <span class="pane-title">${src.label} 뉴스</span>` : ''}
+            <span class="pane-count" id="count-${src.id}" style="flex:1"></span>
             <button class="excel-btn" id="excel-${src.id}" onclick="exportExcel('${src.id}')" disabled>
                 ⬇ 엑셀 저장
             </button>
@@ -554,8 +566,18 @@ function renderPane(src, result, keyword, multi) {
     }
 
     // 기간 필터 적용
-    const items = result.value.filter(it => withinPeriod(it.pubDate));
-    if (count) count.textContent = `${items.length}건`;
+    const beforeDedup = result.value.filter(it => withinPeriod(it.pubDate));
+
+    // 중복 제거 적용
+    const items = deduplicateItems(beforeDedup);
+
+    if (count) {
+        if (dedupLevel !== 'off' && items.length < beforeDedup.length) {
+            count.textContent = `총 ${beforeDedup.length}건 → 중복제거 후 ${items.length}건`;
+        } else {
+            count.textContent = `총 ${items.length}건`;
+        }
+    }
 
     if (!items.length) {
         body.innerHTML = `<div class="state-box"><div class="state-icon">🔎</div><div class="state-title">결과 없음</div><div class="state-sub">${filterDays > 0 ? '기간을 늘려보세요' : '다른 키워드를 시도하세요'}</div></div>`;
@@ -595,10 +617,129 @@ function cardHTML(item, src) {
 }
 
 /* ══════════════════════════════════════════════════════════
+   중복 제거 (키워드 빈도 기반)
+══════════════════════════════════════════════════════════ */
+
+// HTML 엔티티 디코딩 + 언론사 suffix 제거 + 정제
+function cleanTitle(title) {
+    const txt = document.createElement('textarea');
+    txt.innerHTML = title;
+    let t = txt.value;
+    t = t.replace(/<[^>]+>/g, '');                          // HTML 태그 제거
+    t = t.replace(/\s*[-–—|]\s*[^\-–—|]{1,30}$/, '');   // 언론사 suffix 제거
+    t = t.replace(/\s*:\s*[^:]{1,20}$/, '');
+    return t.trim();
+}
+
+// 제목을 단어 집합으로 분리 (검색 키워드 제외, 1글자 제외)
+// 중복 판정에서 항상 제외할 노이즈 단어
+const STOP_WORDS = new Set([
+    '단독', '속보', '종합', '긴급', 'breaking', '포토', '영상', '사진',
+    '오늘', '어제', '이번', '지난', '올해', '최근', '현재', '관련',
+    '기자', '뉴스', '보도', '기획', '심층', '기자수첩', '칼럼',
+]);
+
+// 제목을 단어 집합으로 분리 (검색 키워드 + 노이즈 단어 제외, 2글자 미만 제외)
+function tokenize(title, excludeWords) {
+    const cleaned = cleanTitle(title);
+    // 한글/영문/숫자가 아닌 문자를 공백으로 치환 후 분리
+    // → "인재…안전관리" 가 "인재", "안전관리" 두 토큰으로 분리됨
+    return cleaned
+        .replace(/[^가-힣a-zA-Z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .map(w => w.toLowerCase())
+        .filter(w => w.length >= 2 && !excludeWords.has(w) && !STOP_WORDS.has(w));
+}
+
+function deduplicateItems(items) {
+    if (dedupLevel === 'off') return items;
+
+    const rawKeyword = document.getElementById('keyword').value.trim().toLowerCase();
+    const excludeWords = new Set(
+        rawKeyword.split(/\s+/).map(w => w.replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g, ''))
+    );
+
+    // ── Step 1: 전체 기사 단어 빈도 계산 ──
+    const wordFreq   = new Map();
+    const itemTokens = items.map(item => {
+        const tokens = tokenize(item.title || '', excludeWords);
+        tokens.forEach(w => wordFreq.set(w, (wordFreq.get(w) || 0) + 1));
+        return tokens;
+    });
+
+    const minFreq   = { low: 3, mid: 2, high: 2 }[dedupLevel];
+    const sharedMin = { low: 4, mid: 3, high: 2 }[dedupLevel];
+
+    // ── Step 2: 고빈도 단어 집합 추출 ──
+    const itemKeySets = itemTokens.map(tokens =>
+        new Set(tokens.filter(w => (wordFreq.get(w) || 0) >= minFreq))
+    );
+
+    // ── 로그: 전체 단어 빈도 Top 20 (디버그용 — 활성화하려면 주석 해제) ──
+    // const freqSorted = [...wordFreq.entries()]
+    //     .filter(([,v]) => v >= minFreq)
+    //     .sort((a,b) => b[1]-a[1]);
+    // console.group(`[중복제거] 설정: ${dedupLevel} / minFreq≥${minFreq} / sharedMin≥${sharedMin} / 기사 ${items.length}건`);
+    // console.log('제외 키워드:', [...excludeWords].join(', '));
+    // console.log('핵심 키워드 Top20:', freqSorted.slice(0,20).map(([w,c])=>`${w}(${c})`).join(' · '));
+    // console.log('');
+    // console.log('── 기사별 키워드 & 중복 판정 ──');
+
+    // ── Step 3: 그리디 중복 제거 ──
+    const kept     = [];
+    const keptSets = [];
+    const keptTitles = [];
+
+    items.forEach((item, i) => {
+        const keySet  = itemKeySets[i];
+        const title   = cleanTitle(item.title || '');
+        const keyArr  = [...keySet];
+
+        if (keySet.size === 0) {
+            kept.push(item);
+            keptSets.push(keySet);
+            keptTitles.push(title);
+            // console.log(`  ✅ [${i+1}] "${title.slice(0,40)}" → 핵심키워드 없음(유지)`);
+            return;
+        }
+
+        let isDup       = false;
+        let dupWith     = '';
+        let sharedWords = [];
+
+        for (let k = 0; k < keptSets.length; k++) {
+            const ks = keptSets[k];
+            const sw = keyArr.filter(w => ks.has(w));
+            if (sw.length >= sharedMin) {
+                isDup       = true;
+                dupWith     = keptTitles[k];
+                sharedWords = sw;
+                break;
+            }
+        }
+
+        if (isDup) {
+            // console.log(`  ❌ [${i+1}] "${title.slice(0,40)}"\n       → 중복: 공유어[${sharedWords.join(',')}] ← "${dupWith.slice(0,30)}"`);
+        } else {
+            kept.push(item);
+            keptSets.push(keySet);
+            keptTitles.push(title);
+            // console.log(`  ✅ [${i+1}] "${title.slice(0,40)}" [${keyArr.join(',')}]`);
+        }
+    });
+
+    // console.log(`\n결과: ${items.length}건 → ${kept.length}건 (${items.length - kept.length}건 제거)`);
+    // console.groupEnd();
+
+    return kept;
+}
+
+/* ══════════════════════════════════════════════════════════
    API / RSS 호출
 ══════════════════════════════════════════════════════════ */
 async function fetchSource(src, keyword) {
-    if (src.type === 'naver') return fetchNaver(keyword);
+    if (src.type === 'naver')   return fetchNaver(keyword);
+    if (src.type === 'gsearch') return fetchGoogleSearch(keyword);
     return fetchRSS(src, keyword);
 }
 
@@ -607,6 +748,19 @@ async function fetchNaver(keyword) {
     if (!res.ok) throw new Error(`네이버 오류: ${res.status}`);
     const data = await res.json();
     return data.items || [];
+}
+
+async function fetchGoogleSearch(keyword) {
+    // total: 가져올 총 기사 수, API 1회 10건 제한이므로 서버에서 페이지 반복
+    const res = await fetch(`${PROXY}/google-search?query=${encodeURIComponent(keyword)}&total=${maxCount}`);
+    if (!res.ok) throw new Error(`구글 검색 오류: ${res.status}`);
+    const data = await res.json();
+    return (data.items || []).map(it => ({
+        title:       it.title,
+        link:        it.link,
+        pubDate:     it.pubDate || '',
+        description: it.description || '',
+    }));
 }
 
 async function fetchRSS(src, keyword) {

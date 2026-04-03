@@ -126,6 +126,15 @@
             color: var(--text); transition: background .15s; white-space: nowrap; flex-shrink: 0;
         }
         .theme-btn:hover { background: var(--chip-hov); }
+        .excel-all-btn {
+            height: 30px; padding: 0 13px; border-radius: 7px;
+            border: 1.5px solid #22c55e; background: rgba(34,197,94,.08);
+            cursor: pointer; font-family: 'Space Mono', monospace;
+            font-size: 11px; font-weight: 700; color: #22c55e;
+            transition: background .15s; white-space: nowrap; flex-shrink: 0;
+        }
+        .excel-all-btn:hover { background: rgba(34,197,94,.18); }
+        .excel-all-btn:disabled { opacity: .35; cursor: not-allowed; }
 
         /* 검색창 바 */
         .search-bar {
@@ -326,6 +335,7 @@
             </div>
         </div>
 
+        <button class="excel-all-btn" id="excelAllBtn" onclick="exportAllExcel()" disabled>⬇ 엑셀 저장</button>
         <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀ 라이트</button>
     </div>
 
@@ -513,6 +523,8 @@ async function searchNews() {
     const keyword = document.getElementById('keyword').value.trim();
     if (!keyword) { alert("키워드를 입력해주세요!"); return; }
     newsDataStore = {};  // 이전 결과 초기화
+    const excelAllBtn = document.getElementById('excelAllBtn');
+    if (excelAllBtn) excelAllBtn.disabled = true;
 
     const btn = document.getElementById('searchBtn');
     btn.disabled = true; btn.textContent = '검색 중…';
@@ -536,15 +548,11 @@ async function searchNews() {
 
 /* ── 패널 HTML ── */
 function paneHTML(src, showHeader) {
-    // 단일/다중 모두 항상 헤더 표시 (건수 + 엑셀 버튼)
     const header = `
         <div class="pane-header">
             ${showHeader ? `<span class="pane-dot" style="background:${src.color}"></span>
-            <span class="pane-title">${src.label} 뉴스</span>` : ''}
+            <span class="pane-title">${src.label}</span>` : ''}
             <span class="pane-count" id="count-${src.id}" style="flex:1"></span>
-            <button class="excel-btn" id="excel-${src.id}" onclick="exportExcel('${src.id}')" disabled>
-                ⬇ 엑셀 저장
-            </button>
         </div>`;
     return `
     <div class="pane" id="pane-${src.id}">
@@ -585,10 +593,10 @@ function renderPane(src, result, keyword, multi) {
     }
     body.innerHTML = `<div class="card-list">${items.map(it => cardHTML(it, src)).join('')}</div>`;
 
-    // 엑셀 저장용 데이터 보관 + 버튼 활성화
+    // 엑셀 저장용 데이터 보관
     newsDataStore[src.id] = { items, label: src.label };
-    const excelBtn = document.getElementById(`excel-${src.id}`);
-    if (excelBtn) excelBtn.disabled = false;
+    // 하나라도 결과 있으면 전체 저장 버튼 활성화
+    document.getElementById('excelAllBtn').disabled = false;
 }
 
 /* ── 카드 HTML ── */
@@ -794,39 +802,50 @@ function parseRSS(xml) {
     });
 }
 
-/* ── 엑셀 저장 ── */
-function exportExcel(srcId) {
-    const store = newsDataStore[srcId];
-    if (!store || !store.items.length) return;
+/* ── 전체 엑셀 저장 (모든 소스 → 시트 1개) ── */
+function exportAllExcel() {
+    if (!Object.keys(newsDataStore).length) return;
 
-    const keyword = document.getElementById('keyword').value.trim();
-    // HTML 엔티티 디코딩 함수
+    const keyword   = document.getElementById('keyword').value.trim();
+    const date      = new Date().toISOString().slice(0, 10);
     const decodeHTML = str => {
         const txt = document.createElement('textarea');
         txt.innerHTML = str;
         return txt.value;
     };
 
-    const rows = store.items.map(item => {
-        const title = decodeHTML((item.title || '').replace(/<[^>]+>/g, '')).trim();
-        const pubDate = item.pubDate
-            ? new Date(item.pubDate).toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
-            : '';
-        const link = item.link || '';
-        return { '기사 제목': title, '발행시각': pubDate, '기사 링크': link };
-    });
+    // 모든 소스 결과를 하나의 행 배열로 합치기 (소스명 컬럼 포함)
+    const allRows = [];
+    for (const [srcId, store] of Object.entries(newsDataStore)) {
+        store.items.forEach(item => {
+            const title   = decodeHTML((item.title || '').replace(/<[^>]+>/g, '')).trim();
+            const pubDate = item.pubDate
+                ? new Date(item.pubDate).toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+                : '';
+            const link = item.link || '';
+            allRows.push({
+                '출처':     store.label,
+                '기사 제목': title,
+                '발행시각': pubDate,
+                '기사 링크': link,
+            });
+        });
+    }
 
-    const ws = XLSX.utils.json_to_sheet(rows);
+    if (!allRows.length) { alert('저장할 결과가 없습니다.'); return; }
 
-    // 열 너비 설정
+    const ws = XLSX.utils.json_to_sheet(allRows);
+
+    // 열 너비
     ws['!cols'] = [
-        { wch: 60 },   // 기사 제목
-        { wch: 20 },   // 발행시각
-        { wch: 80 },   // 기사 링크
+        { wch: 12 },  // 출처
+        { wch: 60 },  // 기사 제목
+        { wch: 20 },  // 발행시각
+        { wch: 80 },  // 기사 링크
     ];
 
     // 헤더 스타일
-    ['A1','B1','C1'].forEach(cell => {
+    ['A1','B1','C1','D1'].forEach(cell => {
         if (ws[cell]) ws[cell].s = {
             font: { bold: true, color: { rgb: 'FFFFFF' } },
             fill: { fgColor: { rgb: '1E3A5F' } },
@@ -834,26 +853,24 @@ function exportExcel(srcId) {
         };
     });
 
-    // 기사 제목 셀을 하이퍼링크로 만들기
-    rows.forEach((row, i) => {
-        const rowNum = i + 2;  // 헤더가 1행
-        const titleCell = `A${rowNum}`;
-        const linkCell  = `C${rowNum}`;
+    // 기사 제목(B열) 하이퍼링크, 기사 링크(D열) 하이퍼링크
+    allRows.forEach((row, i) => {
+        const rowNum   = i + 2;
+        const titleCell = `B${rowNum}`;
+        const linkCell  = `D${rowNum}`;
         if (row['기사 링크'] && ws[titleCell]) {
-            ws[titleCell].l = { Target: row['기사 링크'], Tooltip: row['기사 링크'] };
+            ws[titleCell].l = { Target: row['기사 링크'] };
             ws[titleCell].s = { font: { color: { rgb: '1A56DB' }, underline: true } };
         }
-        // 링크 셀도 하이퍼링크
         if (row['기사 링크'] && ws[linkCell]) {
             ws[linkCell].l = { Target: row['기사 링크'] };
         }
     });
 
+    // 편집 가능 상태로 저장 (bookSST: false, sheetStubs: false)
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, store.label);
-
-    const date = new Date().toISOString().slice(0,10);
-    XLSX.writeFile(wb, `뉴스_${keyword}_${store.label}_${date}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, '검색결과');
+    XLSX.writeFile(wb, `뉴스_${keyword}_${date}.xlsx`, { bookSST: false, cellStyles: true });
 }
 
 /* ── 초기화 ── */

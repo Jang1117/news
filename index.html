@@ -312,9 +312,9 @@
 
             <!-- 기간 필터 (소스에서 16px 띄움) -->
             <div class="period-group" id="periodGroup">
-                <button class="period-btn active" data-days="0"   onclick="selectPeriod(this)">전체</button>
+                <button class="period-btn"        data-days="0"   onclick="selectPeriod(this)">전체</button>
                 <button class="period-btn"        data-days="1"   onclick="selectPeriod(this)">1일</button>
-                <button class="period-btn"        data-days="7"   onclick="selectPeriod(this)">1주일</button>
+                <button class="period-btn active" data-days="7"   onclick="selectPeriod(this)">1주일</button>
                 <button class="period-btn"        data-days="30"  onclick="selectPeriod(this)">1개월</button>
                 <button class="period-btn"        data-days="365" onclick="selectPeriod(this)">1년</button>
             </div>
@@ -328,10 +328,10 @@
 
             <!-- 중복 제거 (기사 수에서 16px 띄움) -->
             <div class="period-group" id="dedupGroup" style="margin-left:16px">
-                <button class="period-btn active" data-dedup="off" onclick="selectDedup(this)">중복해제</button>
+                <button class="period-btn"        data-dedup="off" onclick="selectDedup(this)">중복해제</button>
                 <button class="period-btn"        data-dedup="low"  onclick="selectDedup(this)">최저</button>
                 <button class="period-btn"        data-dedup="mid"  onclick="selectDedup(this)">중간</button>
-                <button class="period-btn"        data-dedup="high" onclick="selectDedup(this)">최대</button>
+                <button class="period-btn active" data-dedup="high" onclick="selectDedup(this)">최대</button>
             </div>
         </div>
 
@@ -386,9 +386,9 @@ const SOURCES = [
 ];
 
 let selectedSources = new Set(['naver', 'google']); // 기본: 네이버+구글
-let filterDays = 0; // 0 = 전체
+let filterDays = 7; // 0 = 전체
 let maxCount  = 20;   // 최대 기사 수
-let dedupLevel = 'off'; // 중복 제거 수준: off / low / mid / high
+let dedupLevel = 'high'; // 중복 제거 수준: off / low / mid / high
 let currentTheme = localStorage.getItem('news_theme') || 'dark';
 applyTheme(currentTheme);
 renderSourceGroup();

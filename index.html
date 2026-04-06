@@ -386,9 +386,9 @@ const SOURCES = [
 ];
 
 let selectedSources = new Set(['naver', 'google']); // 기본: 네이버+구글
-let filterDays = 0; // 0 = 전체
+let filterDays = 7; // 0 = 전체
 let maxCount  = 20;   // 최대 기사 수
-let dedupLevel = 'off'; // 중복 제거 수준: off / low / mid / high
+let dedupLevel = 'high'; // 중복 제거 수준: off / low / mid / high
 let currentTheme = localStorage.getItem('news_theme') || 'dark';
 applyTheme(currentTheme);
 renderSourceGroup();
